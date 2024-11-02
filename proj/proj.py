@@ -2,7 +2,7 @@ import json
 import math
 
 ## GLOBAL OPTS
-DEBUG = False
+DEBUG = True 
 
 ## OBJECTS ##
 class obj:
@@ -145,8 +145,8 @@ def get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, voa_mcd_1, voa_m
     print(f"{bcolors.BOLD}OTM1: PA - {"A" if amps_l1[0] == 0 else "BA"} - {"/" if amps_l1[2] == 0 else "FRA"}{bcolors.ENDC}")
     # OTM 1
     # OA-MCD
-    sections.append(section(pa.gain, pa.f, pa.gain, pa.ase, "PA + VOA")) # PA 
-    booster, b_desc = (a, "A + IU + LP") if amps_l1[0] == 0 else (ba, "BA + IU + LP")
+    booster, p_ch_booster, b_desc = (a, p_ch_a, "A + IU + LP") if amps_l1[0] == 0 else (ba, p_ch_ba, "BA + IU + LP")
+    sections.append(section(pa.gain, pa.f, pa.max_in + pa.gain - (p_ch_booster - booster.gain), pa.ase, "PA + VOA")) # PA 
     sections.append(section(booster.gain, booster.f, losses.fiu + losses.lp_tx, booster.ase, b_desc)) # BOOSTER
     # FRA
     sections.append(section(0, 0, L2, NO_ASE, "Fiber 1") if amps_l1[2] == 0 else section(fra.gain, fra.f, L1, fra.ase, "FRA + Fiber 1"))
@@ -157,10 +157,10 @@ def get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, voa_mcd_1, voa_m
     sections.append(section(0, 0, losses.lp_rx + losses.fiu, NO_ASE,"LP + IU") if amps_l1[1] == 0 else section(ra.gain, ra.f, losses.lp_rx + losses.fiu, ra.ase, "RA + LP + IU"))
     # OA-MCD
     sections.append(section(pa.gain, pa.f, voa_mcd_1, pa.ase, "PA + VOA")) 
-    booster, b_desc = a, "A + DEMUX + MUX + VOA"
-    sections.append(section(booster.gain, booster.f, p_ch_a - pa.min_in, booster.ase, b_desc))
+    ab_desc = "A + DEMUX + MUX + VOA"
+    booster, p_ch_booster, b_desc = (a, p_ch_a, "A") if amps_l2[0] == 0 else (ba, p_ch_ba, "BA")
+    sections.append(section(a.gain, a.f, p_ch_a - (p_ch_booster - booster.gain), a.ase, ab_desc))
     
-    booster, b_desc = (a, "A") if amps_l2[0] == 0 else (ba, "BA")
     if flag_pc_OADM:
         # PA if using OA-MCD
         sections.append(section(pa.gain, pa.f, pa.gain, pa.ase, "PA + VOA")) 
@@ -202,6 +202,7 @@ def get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, voa_mcd_1, voa_m
     osnr = p_ch_a - ase_tot
     print(f"Total ASE of the system is:\n{bcolors.OKBLUE}P_ase = {ase_tot:.2f}dB{bcolors.ENDC}")
     print(f"OSNR of the system is:\n{bcolors.OKBLUE}OSNR = {osnr:.2f}dB{bcolors.ENDC}")
+    return osnr
 
 def print_opts(mcd_opts, print_all = True):
     if not mcd_opts:
@@ -248,19 +249,25 @@ def main(TEST):
     # load the project configuration data 
     config = {}
 
-    with open('conf.json', 'r') as file:
+    ## call tests if in test mode #TODO : add more tests
+    path = 'conf.json'
+    if TEST:
+        for i in range(3):
+            print(f"{bcolors.OKBLUE}{bcolors.BOLD}CURRENTLY IN TEST MODE{bcolors.ENDC}")
+        path = 'testconf.json'
+    
+    with open(path, 'r') as file:
         config = json.load(file)
 
     ba, a, pa, ra, fra, link, losses, otu = conv_to_objects(config)
 
-    ## call tests if in test mode #TODO : add more tests
-    if TEST:
-        test_loss(losses)
-        return
-    
+
     # calculate losses
     L1 = loss(losses, link.l1)
     L2 = loss(losses, link.l2)
+
+    if TEST:
+        L1, L2 = config["test_L1"], config["test_L2"]
 
     print("Line losses:\n{}L1 = {:.2f}, L2 = {:.2f}\n{}".format(bcolors.OKCYAN, L1, L2, bcolors.ENDC))
 
@@ -297,7 +304,12 @@ def main(TEST):
 
     # see if there is no options without pc2
     flag = all(pc2 for _,_,_,_,_,pc2 in mcd_opts) # only true if all options have precomp on 2
-    get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, att1, att2, a, ba, pa, ra, fra, flag_pc_OADM=flag)
+    osnr = get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, att1, att2, a, ba, pa, ra, fra, flag_pc_OADM=flag)
+    if TEST:
+        if round(osnr, 2) == config["test_osnr"]: 
+            print(f"{bcolors.OKGREEN}OSNR TEST PASSED{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}OSNR TEST FAILED{bcolors.ENDC}")
 
 if __name__ == "__main__":
     TEST = False

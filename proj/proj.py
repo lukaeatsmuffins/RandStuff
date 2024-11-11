@@ -2,7 +2,7 @@ import json
 import math
 
 ## GLOBAL OPTS
-DEBUG = True 
+DEBUG = False
 
 ## OBJECTS ##
 class obj:
@@ -142,16 +142,16 @@ def get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, voa_mcd_1, voa_m
 
     # amps == [A/AB, -/RA, -/FRA]
     sections = [] # G, F, L, ASE
-    print(f"{bcolors.BOLD}OTM1: PA - {"A" if amps_l1[0] == 0 else "BA"} - {"/" if amps_l1[2] == 0 else "FRA"}{bcolors.ENDC}")
+    print(f"{bcolors.BOLD}OTM1: PA - {'A' if amps_l1[0] == 0 else 'BA'} - {'/' if amps_l1[2] == 0 else 'FRA'}{bcolors.ENDC}")
     # OTM 1
     # OA-MCD
     booster, p_ch_booster, b_desc = (a, p_ch_a, "A + IU + LP") if amps_l1[0] == 0 else (ba, p_ch_ba, "BA + IU + LP")
     sections.append(section(pa.gain, pa.f, pa.max_in + pa.gain - (p_ch_booster - booster.gain), pa.ase, "PA + VOA")) # PA 
     sections.append(section(booster.gain, booster.f, losses.fiu + losses.lp_tx, booster.ase, b_desc)) # BOOSTER
     # FRA
-    sections.append(section(0, 0, L2, NO_ASE, "Fiber 1") if amps_l1[2] == 0 else section(fra.gain, fra.f, L1, fra.ase, "FRA + Fiber 1"))
+    sections.append(section(0, 0, L1, NO_ASE, "Fiber 1") if amps_l1[2] == 0 else section(fra.gain, fra.f, L1, fra.ase, "FRA + Fiber 1"))
 
-    print(f"{bcolors.BOLD}OADM({"OBA" if not flag_pc_OADM else "MCA-CD"}): {"/" if amps_l1[1] == 0 else "RA"} - PA - A - MUX|DEMUX - {"/" if not flag_pc_OADM else "PA"} - {"A" if amps_l2[0] == 0 else "BA"} - {"/" if amps_l2[2] == 0 else "FRA"}{bcolors.ENDC}")
+    print(f"{bcolors.BOLD}OADM({'OBA' if not flag_pc_OADM else 'MCA-CD'}): {'/' if amps_l1[1] == 0 else 'RA'} - PA - A - MUX|DEMUX - {'/' if not flag_pc_OADM else 'PA'} - {'A' if amps_l2[0] == 0 else 'BA'} - {'/' if amps_l2[2] == 0 else 'FRA'}{bcolors.ENDC}")
     # OADM 
     # RA
     sections.append(section(0, 0, losses.lp_rx + losses.fiu, NO_ASE,"LP + IU") if amps_l1[1] == 0 else section(ra.gain, ra.f, losses.lp_rx + losses.fiu, ra.ase, "RA + LP + IU"))
@@ -159,6 +159,7 @@ def get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, voa_mcd_1, voa_m
     sections.append(section(pa.gain, pa.f, voa_mcd_1, pa.ase, "PA + VOA")) 
     ab_desc = "A + DEMUX + MUX + VOA"
     booster, p_ch_booster, b_desc = (a, p_ch_a, "A") if amps_l2[0] == 0 else (ba, p_ch_ba, "BA")
+    ## TODO: here may be BA instead of A
     sections.append(section(a.gain, a.f, p_ch_a - (p_ch_booster - booster.gain), a.ase, ab_desc))
     
     if flag_pc_OADM:
@@ -168,12 +169,13 @@ def get_osnr(p_ch_a, p_ch_ba, L1, L2, amps_l1, amps_l2, losses, voa_mcd_1, voa_m
     # FRA 
     sections.append(section(0, 0, L2, NO_ASE, "Fiber 2") if amps_l2[2] == 0 else section(fra.gain, fra.f, L2, fra.ase, "FRA + Fiber 2"))
 
-    print(f"{bcolors.BOLD}OTM2: {"/" if amps_l2[1] == 0 else "RA"} - A{bcolors.ENDC}\n")
+    print(f"{bcolors.BOLD}OTM2: {'/' if amps_l2[1] == 0 else 'RA'} - A{bcolors.ENDC}\n")
     # OTM 2
     # RA
     sections.append(section(0, 0, losses.lp_rx + losses.fiu, NO_ASE, "LP + IU") if amps_l2[1] == 0 else section(ra.gain, ra.f, losses.lp_rx + losses.fiu, ra.ase, "RA + LP + IU"))
     # OA-MCD
     sections.append(section(pa.gain, pa.f, voa_mcd_2, pa.ase, "PA + VOA")) # PA 
+    # TODO: here may be BA instead of A
     booster = a
     booster, b_desc = a, "A"
     sections.append(section(booster.gain, booster.f, 0, booster.ase, b_desc)) # BOOSTER, last section has L = 0
@@ -254,7 +256,7 @@ def main(TEST):
     if TEST:
         for i in range(3):
             print(f"{bcolors.OKBLUE}{bcolors.BOLD}CURRENTLY IN TEST MODE{bcolors.ENDC}")
-        path = 'testconf.json'
+        path = 'testconf2.json'
     
     with open(path, 'r') as file:
         config = json.load(file)
@@ -266,7 +268,7 @@ def main(TEST):
     L1 = loss(losses, link.l1)
     L2 = loss(losses, link.l2)
 
-    if TEST:
+    if TEST and not config["use_standard"]:
         L1, L2 = config["test_L1"], config["test_L2"]
 
     print("Line losses:\n{}L1 = {:.2f}, L2 = {:.2f}\n{}".format(bcolors.OKCYAN, L1, L2, bcolors.ENDC))
@@ -312,5 +314,5 @@ def main(TEST):
             print(f"{bcolors.FAIL}OSNR TEST FAILED{bcolors.ENDC}")
 
 if __name__ == "__main__":
-    TEST = False
+    TEST = False 
     main(TEST)

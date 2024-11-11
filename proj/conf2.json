@@ -3,21 +3,21 @@
 	"gain" : 23,
 	"f" : 6.5,
 	"ase" : -29.1,
-	"max_out" : 24
+	"max_out" : 25
 	},
 
 	"A" : {
 	"gain" : 23,
 	"f" : 5.5,
 	"ase" : -30.4,
-	"max_out" : 21
+	"max_out" : 22
 	},
 
 	"PA" : {
 	"gain" : 21,
 	"f" : 5,
 	"ase" : -33.3,
-	"min_in" : -30,
+	"min_in" : -31,
 	"max_in" : -22
 	},
 
@@ -34,8 +34,8 @@
 	},
 
 	"link" : {
-	"l1" : 122,
-	"l2" : 114,
+	"l1" : 98,
+	"l2" : 142,
 	"disp_per_km" : 18,
 	"min_disp" : -300,
 	"max_disp" : 500

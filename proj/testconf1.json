@@ -3,21 +3,21 @@
 	"gain" : 23,
 	"f" : 6.5,
 	"ase" : -29.1,
-	"max_out" : 24
+	"max_out" : 23
 	},
 
 	"A" : {
 	"gain" : 23,
 	"f" : 5.5,
 	"ase" : -30.4,
-	"max_out" : 21
+	"max_out" : 20
 	},
 
 	"PA" : {
 	"gain" : 21,
 	"f" : 5,
 	"ase" : -33.3,
-	"min_in" : -30,
+	"min_in" : -32,
 	"max_in" : -22
 	},
 
@@ -34,8 +34,8 @@
 	},
 
 	"link" : {
-	"l1" : 122,
-	"l2" : 114,
+	"l1" : 134,
+	"l2" : 78,
 	"disp_per_km" : 18,
 	"min_disp" : -300,
 	"max_disp" : 500
@@ -55,13 +55,16 @@
 	"comp_100" : 8,
 	"loss_per_km" : 0.275,
 	"loss_margin_db" : 3,
-	"loss_margin_per_km" : 0
+	"loss_margin_per_km" : 0.00
 	},
 
 	"otu" : {
-	"min_in" : -9,
+	"min_in" : -6,
 	"max_out" : -2,
 	"min_osnr" : 18,
-	"channel_count" : 160
-	}
+	"channel_count" : 80
+	},
+
+	"test_osnr" : 17.28,
+	"use_standard" : true
 }
